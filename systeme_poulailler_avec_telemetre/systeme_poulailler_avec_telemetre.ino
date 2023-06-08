@@ -20,32 +20,47 @@ int fermetureHiver = 20;
 char hiver = true; // true => heures d'hiver ; false => heures d'été
 char porteOuverte = false;
 char jour  = false;
+char obstacle = false; // Si un obtacle est détecté
 
 int i = 0;
 
 void ouverturePorte() {
-  // scan from 0 to 180 degrees
+  Serial.println("Ouverture de la porte");
   digitalWrite(9, HIGH);
   porteOuverte = true;
-  
+
+  // scan from 0 to 180 degrees
   for(angle = 10; angle < 180; angle++)  
   {                                  
-    servo.write(angle);               
-    //delay(15);                   
+    servo.write(angle);                              
   } 
-  //Serial.println("INFO : Ouverture terminée");
+
 }
 
 void fermeturePorte() {
+  Serial.println("Fermeture de la porte");
   digitalWrite(9, LOW);
   porteOuverte = false;
   
-  for(angle = 120; angle > 10; angle--)    
+  for(angle = 180; angle > 10; angle--)    
   {                                
     servo.write(angle);           
-    //delay(15);       
+    delay(5);
+    detecterObstacle();
+
+    /*
+     * Si un obstacle est détecté pendant la fermeture,
+     * on arrête la fermeture et on ouvre la porte
+     */
+    if (obstacle) { // Obstacle détecté
+      for(angle; angle < 180; angle++) { // Ouverture de la porte 
+        servo.write(angle); 
+      }
+      digitalWrite(9, HIGH); // Allumage de la LED temoin
+      porteOuverte = true;
+      break;      
+    }
   }
-  //Serial.println("INFO : Fermeture terminée");
 }
 
 void afficherHeure() { // Simple affichage de l'heure
@@ -62,15 +77,11 @@ void gestionPorte(int heureOuverture, int heureFermeture) {
    */
   if (heure == heureOuverture) { // Heure d'ouverture de la porte
     jour = true;
-    digitalWrite(9, HIGH);
-    porteOuverte = true;
-    Serial.println("Ouverture de la porte");
+    ouverturePorte();
   }
   else if (heure == heureFermeture) { ;// Heure de femeture de la porte
     jour = false;
-    digitalWrite(9, LOW);
-    porteOuverte = false;
-    Serial.println("Fermeture de la porte");
+    fermeturePorte();
   }
 }
 
@@ -92,6 +103,23 @@ void gestionPoulailler() { // Appelée à chaque interruption
     }
   
   }
+}
+
+void detecterObstacle() {
+  int distance;
+    distance = ultrasonic.MeasureInCentimeters();
+    
+    if (distance < distanceLimite) // Si un obstacle est détecté
+    {
+      Serial.println("ATTENTION : Obstacle détecté !");
+      //ouverturePorte();
+      obstacle = true;
+    }
+    else
+    {
+      //fermeturePorte();
+      obstacle = false;
+    }
 }
 
 
@@ -148,13 +176,14 @@ void loop() {
   /*
    * Mesure de la distance pour s'assurer qu'aucun obstacle n'est devant la porte
    */
-  distance = ultrasonic.MeasureInCentimeters();
-  if (distance < distanceLimite && !porteOuverte && !jour)
+  detecterObstacle();
+  //distance = ultrasonic.MeasureInCentimeters();
+  if (obstacle && !porteOuverte && !jour)
   {
-    Serial.println("ATTENTION : Obstacle détecté !");
+    //Serial.println("ATTENTION : Obstacle détecté !");
     ouverturePorte();
   }
-  else if (distance > distanceLimite && porteOuverte && !jour)
+  else if (!obstacle && porteOuverte && !jour)
   {
     fermeturePorte();
   }
