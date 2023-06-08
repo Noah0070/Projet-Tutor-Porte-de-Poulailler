@@ -1,18 +1,13 @@
-#include <ServoTimer2.h>  // the servo library
+
 #include "Ultrasonic.h"
 
 
-ServoTimer2 servoYaw;
 Ultrasonic ultrasonic(7);
 
 #define ledPin 13
-#define yawPin 8
 
-ServoTimer2 servoRoll;    // declare variables for up to eight servos
-ServoTimer2 servoPitch; 
-
+int interrupt = 0;
 int distanceLimite = 15;
-
 int heure = 0;
 int angle = 10;
 
@@ -33,23 +28,24 @@ void ouverturePorte() {
   digitalWrite(9, HIGH);
   porteOuverte = true;
   
-  for(angle = 10; angle < 180; angle++)  
-  {                                  
-    servoYaw.write(angle);               
-    delay(15);                   
-  } 
-  Serial.println("Ouverture terminée");
+//  for(angle = 10; angle < 180; angle++)  
+//  {                                  
+//    servoYaw.write(angle);               
+//    delay(15);                   
+//  } 
+//  Serial.println("Ouverture terminée");
 }
 
 void fermeturePorte() {
   digitalWrite(9, LOW);
   porteOuverte = false;
-   for(angle = 120; angle > 10; angle--)    
-  {                                
-    servoYaw.write(angle);           
-    delay(15);       
-  }
-  Serial.println("Fermeture terminée");
+  
+//  for(angle = 120; angle > 10; angle--)    
+//  {                                
+//    servoYaw.write(angle);           
+//    delay(15);       
+//  }
+//  Serial.println("Fermeture terminée");
 }
 
 void afficherHeure() { // Simple affichage de l'heure
@@ -99,21 +95,21 @@ void gestionPoulailler() { // Appelée à chaque interruption
 }
 
 
-void setupTimer1() {
+void setupTimer2() {
   noInterrupts();
   // Clear registers
-  TCCR1A = 0;
-  TCCR1B = 0;
-  TCNT1 = 0;
+  TCCR2A = 0;
+  TCCR2B = 0;
+  TCNT2 = 0;
 
-  // 1 Hz (16000000/((15624+1)*1024))
-  OCR1A = 15624;
+  // 1 Hz (16000000/((124+1)*256))
+  OCR2A = 124;
   // CTC
-  TCCR1B |= (1 << WGM12);
-  // Prescaler 1024
-  TCCR1B |= (1 << CS12) | (1 << CS10);
+  TCCR2A |= (1 << WGM21);
+  // Prescaler 256
+  TCCR2B |= (1 << CS22);
   // Output Compare Match A Interrupt Enable
-  TIMSK1 |= (1 << OCIE1A);
+  TIMSK2 |= (1 << OCIE2A);
   interrupts();
 }
 
@@ -124,8 +120,8 @@ void setup() {
   pinMode(9, OUTPUT);
   pinMode(ledPin, OUTPUT);
   pinMode(2, INPUT);
-  setupTimer1();
-  servoYaw.attach(yawPin);
+  setupTimer2();
+//  servoYaw.attach(yawPin);
 }
 
 void loop() {
@@ -168,9 +164,33 @@ void loop() {
   delay(500); 
 }
 
-ISR(TIMER1_COMPA_vect) { // Interruption timer
-  digitalWrite(ledPin, digitalRead(ledPin) ^ 1);
-  //Serial.println("seconde");
-  gestionPoulailler();
-  heure++;
+//ISR(TIMER2_COMPA_vect) { // Interruption timer
+//  interrupt++;
+//  if (interrupt == 2000) {
+//    interrupt = 0;
+//    digitalWrite(ledPin, digitalRead(ledPin) ^ 1);
+//    //Serial.println("seconde");
+//    gestionPoulailler();
+//    heure++;
+//  }
+
+//ISR(TIMER2_COMPA_vect) {
+//  interrupt++;
+//  Serial.println("oui");
+//  if (interrupt == 2000) { // Interruptions à 2kHz donc interrupt=2000 <=> 1 seconde écoulée
+//    digitalWrite(ledPin, digitalRead(ledPin) ^ 1);
+//    gestionPoulailler();
+//    heure++;
+//    interrupt = 0;
+//  }
+//}
+
+ISR(TIMER2_COMPA_vect) {
+  interrupt++;
+  if (interrupt == 2000) { // Interruptions à 2kHz donc interrupt=2000 <=> 1 seconde écoulée
+    digitalWrite(ledPin, digitalRead(ledPin) ^ 1);
+    gestionPoulailler();
+    heure++;
+    interrupt = 0;
+  }
 }
