@@ -1,7 +1,7 @@
-
+#include <Servo.h>
 #include "Ultrasonic.h"
 
-
+Servo servo;
 Ultrasonic ultrasonic(7);
 
 #define ledPin 13
@@ -28,24 +28,24 @@ void ouverturePorte() {
   digitalWrite(9, HIGH);
   porteOuverte = true;
   
-//  for(angle = 10; angle < 180; angle++)  
-//  {                                  
-//    servoYaw.write(angle);               
-//    delay(15);                   
-//  } 
-//  Serial.println("Ouverture terminée");
+  for(angle = 10; angle < 180; angle++)  
+  {                                  
+    servo.write(angle);               
+    //delay(15);                   
+  } 
+  //Serial.println("INFO : Ouverture terminée");
 }
 
 void fermeturePorte() {
   digitalWrite(9, LOW);
   porteOuverte = false;
   
-//  for(angle = 120; angle > 10; angle--)    
-//  {                                
-//    servoYaw.write(angle);           
-//    delay(15);       
-//  }
-//  Serial.println("Fermeture terminée");
+  for(angle = 120; angle > 10; angle--)    
+  {                                
+    servo.write(angle);           
+    //delay(15);       
+  }
+  //Serial.println("INFO : Fermeture terminée");
 }
 
 void afficherHeure() { // Simple affichage de l'heure
@@ -121,7 +121,7 @@ void setup() {
   pinMode(ledPin, OUTPUT);
   pinMode(2, INPUT);
   setupTimer2();
-//  servoYaw.attach(yawPin);
+  servo.attach(8);
 }
 
 void loop() {
@@ -163,27 +163,6 @@ void loop() {
   
   delay(500); 
 }
-
-//ISR(TIMER2_COMPA_vect) { // Interruption timer
-//  interrupt++;
-//  if (interrupt == 2000) {
-//    interrupt = 0;
-//    digitalWrite(ledPin, digitalRead(ledPin) ^ 1);
-//    //Serial.println("seconde");
-//    gestionPoulailler();
-//    heure++;
-//  }
-
-//ISR(TIMER2_COMPA_vect) {
-//  interrupt++;
-//  Serial.println("oui");
-//  if (interrupt == 2000) { // Interruptions à 2kHz donc interrupt=2000 <=> 1 seconde écoulée
-//    digitalWrite(ledPin, digitalRead(ledPin) ^ 1);
-//    gestionPoulailler();
-//    heure++;
-//    interrupt = 0;
-//  }
-//}
 
 ISR(TIMER2_COMPA_vect) {
   interrupt++;
