@@ -5,6 +5,7 @@
  * LED témoin : BROCHE 9
  * commande moteur : BROCHE 8 
  * Capteur ultrason : BROCHE 7 
+ * Bouton : BROCHE 2
  */
 
 Servo servo;
@@ -17,18 +18,70 @@ int distanceLimite = 15;
 int heure = 0;
 int angle = 10;
 
-int ouvertureEte = 6;
-int fermetureEte = 22;
+int ouvertureDefaut = 8;
+int fermetureDefaut = 18;
 
-int ouvertureHiver = 8;
-int fermetureHiver = 20;
+int ouverturePerso = 0;
+int fermeturePerso = 0;
+int compteurChoix = 0; // A chaque nouveau choix d'horaire le compte s'incrémente
 
-char hiver = true; // true => heures d'hiver ; false => heures d'été
+//char hiver = true; // true => heures d'hiver ; false => heures d'été
+char heurePerso = false; // Si les heures d'ouverture/fermeture ont été changées, la variable passe à true
+char choixSurOuverture = true; // true => heure perso. sélection ouverture ; false => selection heure fermeture
 char porteOuverte = false;
 char jour  = false;
-char obstacle = false; // Si un obtacle est détecté
+char obstacle = false; // Si un obtacle est détecté (15 cm)
 
 int i = 0;
+int compteurBoucle = 0; // S'incrémente à chaque boucle loop
+
+ int definirHeure(){
+  /* 
+   *  Chaque bouton poussoir est associé à un chiffre.
+   *  Pour fixer une heure, il faut activer des boutons poussoir de tels sorte 
+   *  que la somme des chiffres qui leurs sont associés soit égale à l'heure 
+   *  que l'ont désire fixer.
+   *  
+   * bouton 1 => BROCHE 3
+   * bouton 2 => BROCHE 4
+   * bouton 3 => BROCHE 5
+   * bouton 4 => BROCHE 6 
+   * bouton 5 => BROCHE A0
+   * bouton 6 => BROCHE A3
+   * bouton 7 => BROCHE A4
+   * bouton 8 => BROCHE A5
+   */
+   
+  int heure = 0;
+
+  if (digitalRead(3) > 0) { //Bouton 1
+     heure ++;
+  }
+  if (digitalRead(4) > 0) { // Bouton 2
+    heure += 2;
+  }
+  if (digitalRead(5) > 0) { // Bouton 3
+    heure += 3;
+  }
+  if (digitalRead(6) > 0) { // Bouton 4
+    heure += 4;
+  }
+  if (digitalRead(A0) > 0) { // Bouton 5
+    heure += 5;
+  }
+  if (digitalRead(A3) > 0) { // Bouton 6
+    heure += 6;
+  }
+  if (digitalRead(A4) > 0) { // Bouton 7
+    heure += 7;
+  }
+  if (digitalRead(A5) > 0) { // Bouton 8
+    heure += 8;
+  }
+
+  return heure;
+ }
+
 
 void ouverturePorte() {
   Serial.println("Ouverture de la porte");
@@ -101,11 +154,11 @@ void gestionPoulailler() { // Appelée à chaque interruption
   else {
     afficherHeure();
 
-    if (hiver) {
-      gestionPorte(ouvertureHiver, fermetureHiver);
+    if (compteurChoix > 1) { // Compteur choix > 1 => Une heure d'ouverture ET de fermeture définis
+      gestionPorte(ouverturePerso, fermeturePerso);
     }
     else {
-      gestionPorte(ouvertureEte, fermetureEte);
+      gestionPorte(ouvertureDefaut, fermetureDefaut);
     }
   
   }
@@ -156,6 +209,16 @@ void setup() {
   pinMode(2, INPUT);
   setupTimer2();
   servo.attach(8);
+
+  // Entrée interrupteur 8 voies
+  pinMode(A0, INPUT);
+  pinMode(A3, INPUT);  
+  pinMode(A4, INPUT);
+  pinMode(A5, INPUT);
+  pinMode(3, INPUT);
+  pinMode(4, INPUT);
+  pinMode(5, INPUT);
+  pinMode(6, INPUT);
 }
 
 void loop() {
@@ -167,21 +230,42 @@ void loop() {
   int btn = digitalRead(2);
   long distance;
   
-  if (btn > 0 && i == 4) { // si le bouton est "appuyé" depuis 2 secondes...
-    hiver = !hiver; // changement de saison
-    Serial.println("INFO : Changement de saison !");
-    i=0;
+
+  // Personnalisation des horaires d'ouverture/fermeture avec le bouton
+  if (digitalRead(2) == 1 && compteurBoucle < 10) {
+    Serial.println("Appui bouton non pris en compte");
   }
-  else if (btn > 0) { // On compte le temps pendant lequel le bouton est "appuyé"
-    i++;
-  }
-  else { // Si le bouton est relâché, on repart de 0
-    i=0;
+  else if (digitalRead(2) == 1) { // Si le bouton est pressé...
+    Serial.println("Bouton pressé...");
+    while(digitalRead(2) == 1); // On attend que le bouton repasse à l'état bas une fois car avant les données sont souvent erronées
+    int nouvelleHeure = definirHeure();
+    Serial.println("ATTENTION : attendez 5 secondes avant de presser le bouton à nouveau !"); // Car le bouton ne pas pas à l'état bas directement après le relachement
+
+    if (nouvelleHeure == 0) {
+      Serial.println("Vous ne pouvez pas régler sur 0.");
+    }
+    else if (choixSurOuverture) {
+      ouverturePerso = nouvelleHeure;
+      choixSurOuverture = !choixSurOuverture;
+      Serial.print("Nouvelle heure d'ouverture : ");
+      Serial.print(ouverturePerso);
+      Serial.println(" heure");
+      compteurBoucle = 0;
+      compteurChoix++;
+    }
+    else if (!choixSurOuverture) {
+      fermeturePerso = nouvelleHeure;
+      choixSurOuverture = !choixSurOuverture;
+      Serial.print("Nouvelle heure de fermture : ");
+      Serial.print(fermeturePerso);
+      Serial.println(" heure");
+      compteurBoucle = 0;
+      compteurChoix++;
+    }
   }
 
-  /*
-   * Mesure de la distance pour s'assurer qu'aucun obstacle n'est devant la porte
-   */
+
+  // Mesure de la distance pour s'assurer qu'aucun obstacle n'est devant la porte
   detecterObstacle();
   if (obstacle && !porteOuverte && !jour)
   {
@@ -191,11 +275,12 @@ void loop() {
   {
     fermeturePorte();
   }
- 
 
-  
+  compteurBoucle++;
+  //Serial.println(compteurBoucle);
   delay(500); 
 }
+
 
 ISR(TIMER2_COMPA_vect) {
   interrupt++;

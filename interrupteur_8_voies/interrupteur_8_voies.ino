@@ -33,6 +33,7 @@
   }
   if (digitalRead(A0) > 0) { // Bouton 5
     heure += 5;
+    Serial.println("Bouton 5");
   }
   if (digitalRead(A3) > 0) { // Bouton 6
     heure += 6;
@@ -42,6 +43,7 @@
   }
   if (digitalRead(A5) > 0) { // Bouton 8
     heure += 8;
+    Serial.println("Bouton 8");
   }
 
   return heure;
