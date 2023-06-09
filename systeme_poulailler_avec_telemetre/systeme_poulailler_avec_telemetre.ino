@@ -1,5 +1,11 @@
 #include <Servo.h>
-#include "Ultrasonic.h"
+#include <Ultrasonic.h>
+
+/*
+ * LED témoin : BROCHE 9
+ * commande moteur : BROCHE 8 
+ * Capteur ultrason : BROCHE 7 
+ */
 
 Servo servo;
 Ultrasonic ultrasonic(7);
@@ -163,7 +169,7 @@ void loop() {
   
   if (btn > 0 && i == 4) { // si le bouton est "appuyé" depuis 2 secondes...
     hiver = !hiver; // changement de saison
-    Serial.println("ATTENTION : Changement de saison !");
+    Serial.println("INFO : Changement de saison !");
     i=0;
   }
   else if (btn > 0) { // On compte le temps pendant lequel le bouton est "appuyé"
@@ -177,10 +183,8 @@ void loop() {
    * Mesure de la distance pour s'assurer qu'aucun obstacle n'est devant la porte
    */
   detecterObstacle();
-  //distance = ultrasonic.MeasureInCentimeters();
   if (obstacle && !porteOuverte && !jour)
   {
-    //Serial.println("ATTENTION : Obstacle détecté !");
     ouverturePorte();
   }
   else if (!obstacle && porteOuverte && !jour)
